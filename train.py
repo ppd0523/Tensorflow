@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib
 import os
 from prettytensor import xavier_init
+import math
 
 #tf.set_random_seed()  # reproducibility
 
@@ -19,19 +20,19 @@ import matplotlib.pyplot as plt
 
 training_epochs = 1000000
 learningRate = 0.01
-batchSize = 1
+batchSize = 50
 
+inputDim = 4
 RNNLayers = 2
 seq_length = 10
-inputDim = 4
-hiddenDim1 = 40
-hiddenDim2 = 60
-hiddenDim3 = 70
-hiddenDim4 = 50
-hiddenDim5 = 30
+hiddenDim1 = 50
+hiddenDim2 = 100
+hiddenDim3 = 100
+# hiddenDim4 = 100
+# hiddenDim5 = 50
 outputDim = 1
 
-CHECK_POINT_DIR = TB_SUMMARY_DIR = "./log/L2-10seq-40-60-70-50-30-1"
+CHECK_POINT_DIR = TB_SUMMARY_DIR = "./log/L4-10seq-50-100-100-1"
 
 xy = np.loadtxt('./emg/1n_angle_zeroADC_sd.txt', delimiter=' ')
 
@@ -88,39 +89,41 @@ with tf.variable_scope('Fully_connected_layer2'):
     tf.summary.histogram("H2_FC", H2_FC)
 
 with tf.variable_scope('Fully_connected_layer3'):
-    W3_FC = tf.get_variable("W3_FC", [hiddenDim3, hiddenDim4], tf.float32,
-                            initializer=xavier_init(hiddenDim3, hiddenDim4))
-    B3_FC = tf.get_variable("B3_FC", [hiddenDim4], tf.float32,
-                            initializer=xavier_init(hiddenDim4, hiddenDim4))
-    H3_FC = tf.nn.relu(tf.matmul(H2_FC, W3_FC) + B3_FC, name="H3_FC")
-    H3_FC = tf.nn.dropout(H3_FC, keep_prob=keep_prob)
+    W3_FC = tf.get_variable("W3_FC", [hiddenDim3, outputDim], tf.float32,
+                            initializer=xavier_init(hiddenDim3, outputDim))
+    B3_FC = tf.get_variable("B3_FC", [outputDim], tf.float32,
+                            initializer=xavier_init(outputDim, outputDim))
+    # H3_FC = tf.nn.relu(tf.matmul(H2_FC, W3_FC) + B3_FC, name="H3_FC")
+    # H3_FC = tf.nn.dropout(H3_FC, keep_prob=keep_prob)
+    Y_pred = tf.matmul(H2_FC, W3_FC) + B3_FC
+
 
     tf.summary.histogram("W3_FC", W3_FC)
     tf.summary.histogram("B3_FC", B3_FC)
-    tf.summary.histogram("H3_FC", H3_FC)
+    tf.summary.histogram("H3_FC", Y_pred)
 
-with tf.variable_scope('Fully_connected_layer4'):
-    W4_FC = tf.get_variable("W4_FC", [hiddenDim4, hiddenDim5], tf.float32,
-                            initializer=xavier_init(hiddenDim4, hiddenDim5))
-    B4_FC = tf.get_variable("B4_FC", [hiddenDim5], tf.float32,
-                            initializer=xavier_init(hiddenDim5, hiddenDim5))
-    H4_FC = tf.nn.relu(tf.matmul(H3_FC, W4_FC) + B4_FC, name="H4_FC")
-    H4_FC = tf.nn.dropout(H4_FC, keep_prob=keep_prob)
-
-    tf.summary.histogram("W4_FC", W2_FC)
-    tf.summary.histogram("B4_FC", B2_FC)
-    tf.summary.histogram("H4_FC", H4_FC)
-
-with tf.variable_scope('Fully_connected_layer5'):
-    W5_FC = tf.get_variable("W5_FC", [hiddenDim5, outputDim], tf.float32,
-                            initializer=xavier_init(hiddenDim5, outputDim))
-    B5_FC = tf.get_variable("B5_FC", [outputDim], tf.float32,
-                            initializer=xavier_init(outputDim, outputDim))
-    Y_pred = tf.matmul(H4_FC, W5_FC)+ B5_FC
-
-    tf.summary.histogram("W5_FC", W5_FC)
-    tf.summary.histogram("B5_FC", B5_FC)
-    tf.summary.histogram("hypothesis", Y_pred)
+# with tf.variable_scope('Fully_connected_layer4'):
+#     W4_FC = tf.get_variable("W4_FC", [hiddenDim4, hiddenDim5], tf.float32,
+#                             initializer=xavier_init(hiddenDim4, hiddenDim5))
+#     B4_FC = tf.get_variable("B4_FC", [hiddenDim5], tf.float32,
+#                             initializer=xavier_init(hiddenDim5, hiddenDim5))
+#     H4_FC = tf.nn.relu(tf.matmul(H3_FC, W4_FC) + B4_FC, name="H4_FC")
+#     H4_FC = tf.nn.dropout(H4_FC, keep_prob=keep_prob)
+#
+#     tf.summary.histogram("W4_FC", W2_FC)
+#     tf.summary.histogram("B4_FC", B2_FC)
+#     tf.summary.histogram("H4_FC", H4_FC)
+#
+# with tf.variable_scope('Fully_connected_layer5'):
+#     W5_FC = tf.get_variable("W5_FC", [hiddenDim5, outputDim], tf.float32,
+#                             initializer=xavier_init(hiddenDim5, outputDim))
+#     B5_FC = tf.get_variable("B5_FC", [outputDim], tf.float32,
+#                             initializer=xavier_init(outputDim, outputDim))
+#     Y_pred = tf.matmul(H4_FC, W5_FC)+ B5_FC
+#
+#     tf.summary.histogram("W5_FC", W5_FC)
+#     tf.summary.histogram("B5_FC", B5_FC)
+#     tf.summary.histogram("hypothesis", Y_pred)
 
 loss = tf.reduce_sum(tf.square(Y_pred - Y))
 optimizer = tf.train.AdamOptimizer(learningRate).minimize(loss)
@@ -156,17 +159,20 @@ with tf.Session() as sess:
     ###############################################################################
     start_from = sess.run(last_epoch)
 
+    total_batch = math.ceil(trainSize/batchSize)
+
     for epoch in range(start_from, training_epochs):
         avg_cost = 0
 
         # Training step
-        for i in range(batchSize):
-            feed_dict = {X: trainX, Y: trainY, keep_prob:0.7}
+        for i in range(total_batch):
+            batchX, batchY = trainX[i*batchSize:(i+1)*batchSize], trainY[i*batchSize:(i+1)*batchSize]
+            feed_dict = {X: batchX, Y: batchY, keep_prob:0.7}
             s, _ = sess.run([summary,optimizer], feed_dict=feed_dict)
             writer.add_summary(s, global_step=global_step)
             global_step += 1
 
-            avg_cost += sess.run(loss, feed_dict=feed_dict)/(len(y)-seq_length) #/ total_batch
+            avg_cost += sess.run(loss, feed_dict=feed_dict)/total_batch #/ total_batch
 
 
         sess.run(last_epoch.assign(epoch+1))
