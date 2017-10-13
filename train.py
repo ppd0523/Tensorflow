@@ -7,6 +7,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib
 import os
+from prettytensor import xavier_init
 
 #tf.set_random_seed()  # reproducibility
 
@@ -16,19 +17,21 @@ if "DISPLAY" not in os.environ:
 
 import matplotlib.pyplot as plt
 
-training_epochs = 500
+training_epochs = 1000000
 learningRate = 0.01
-batchSize = 200
+batchSize = 1
 
-RNNLayers = 3
+RNNLayers = 2
 seq_length = 10
 inputDim = 4
-hiddenDim1 = 30
+hiddenDim1 = 40
 hiddenDim2 = 60
-hiddenDim3 = 40
+hiddenDim3 = 70
+hiddenDim4 = 50
+hiddenDim5 = 30
 outputDim = 1
 
-CHECK_POINT_DIR = TB_SUMMARY_DIR = "./log/L3-10seq-H30-H60-H40-O1"
+CHECK_POINT_DIR = TB_SUMMARY_DIR = "./log/L2-10seq-40-60-70-50-30-1"
 
 xy = np.loadtxt('./emg/1n_angle_zeroADC_sd.txt', delimiter=' ')
 
@@ -63,34 +66,65 @@ with tf.variable_scope('LSTM_layers'):
     tf.summary.histogram("X_FC", X_FC)
 
 with tf.variable_scope('Fully_connected_layer1'):
-    W1_FC= tf.Variable(tf.random_normal([hiddenDim1, hiddenDim2]), dtype=tf.float32 ,name="W1_FC")
-    B1_FC= tf.Variable(tf.random_normal([hiddenDim2]), dtype=tf.float32 , name="B1_FC")
+    W1_FC = tf.get_variable("W1_FC", [hiddenDim1, hiddenDim2], tf.float32, initializer=xavier_init(hiddenDim1, hiddenDim2))
+    B1_FC = tf.get_variable("B1_FC", [hiddenDim2], tf.float32, initializer=xavier_init(hiddenDim2, hiddenDim2))
     H1_FC = tf.nn.relu( tf.matmul(X_FC, W1_FC)+ B1_FC, name="H1_FC" )
+    H1_FC = tf.nn.dropout(H1_FC, keep_prob=keep_prob)
 
-    tf.summary.histogram("W_FC", W1_FC)
-    tf.summary.histogram("B_FC", B1_FC)
-    tf.summary.histogram("hypothesis", H1_FC)
+    tf.summary.histogram("W1_FC", W1_FC)
+    tf.summary.histogram("B1_FC", B1_FC)
+    tf.summary.histogram("H1_FC", H1_FC)
 
 with tf.variable_scope('Fully_connected_layer2'):
-    W2_FC= tf.Variable(tf.random_normal([hiddenDim2, hiddenDim3]), dtype=tf.float32 ,name="W2_FC")
-    B2_FC= tf.Variable(tf.random_normal([hiddenDim3]), dtype=tf.float32 , name="B2_FC")
+    W2_FC = tf.get_variable("W2_FC", [hiddenDim2, hiddenDim3], tf.float32,
+                            initializer=xavier_init(hiddenDim2, hiddenDim3))
+    B2_FC = tf.get_variable("B2_FC", [hiddenDim3], tf.float32,
+                            initializer=xavier_init(hiddenDim3, hiddenDim3))
     H2_FC = tf.nn.relu(tf.matmul(H1_FC, W2_FC) + B2_FC, name="H1_FC")
+    H2_FC = tf.nn.dropout(H2_FC, keep_prob=keep_prob)
 
-    tf.summary.histogram("W_FC", W2_FC)
-    tf.summary.histogram("B_FC", B2_FC)
-    tf.summary.histogram("hypothesis", H2_FC)
+    tf.summary.histogram("W2_FC", W2_FC)
+    tf.summary.histogram("B2_FC", B2_FC)
+    tf.summary.histogram("H2_FC", H2_FC)
 
 with tf.variable_scope('Fully_connected_layer3'):
-    W3_FC= tf.Variable(tf.random_normal([hiddenDim3, outputDim]), dtype=tf.float32 ,name="W3_FC")
-    B3_FC= tf.Variable(tf.random_normal([outputDim]), dtype=tf.float32 , name="B3_FC")
-    Y_pred = tf.matmul(H2_FC, W3_FC)+ B3_FC
+    W3_FC = tf.get_variable("W3_FC", [hiddenDim3, hiddenDim4], tf.float32,
+                            initializer=xavier_init(hiddenDim3, hiddenDim4))
+    B3_FC = tf.get_variable("B3_FC", [hiddenDim4], tf.float32,
+                            initializer=xavier_init(hiddenDim4, hiddenDim4))
+    H3_FC = tf.nn.relu(tf.matmul(H2_FC, W3_FC) + B3_FC, name="H3_FC")
+    H3_FC = tf.nn.dropout(H3_FC, keep_prob=keep_prob)
 
-    tf.summary.histogram("W_FC", W3_FC)
-    tf.summary.histogram("B_FC", B3_FC)
+    tf.summary.histogram("W3_FC", W3_FC)
+    tf.summary.histogram("B3_FC", B3_FC)
+    tf.summary.histogram("H3_FC", H3_FC)
+
+with tf.variable_scope('Fully_connected_layer4'):
+    W4_FC = tf.get_variable("W4_FC", [hiddenDim4, hiddenDim5], tf.float32,
+                            initializer=xavier_init(hiddenDim4, hiddenDim5))
+    B4_FC = tf.get_variable("B4_FC", [hiddenDim5], tf.float32,
+                            initializer=xavier_init(hiddenDim5, hiddenDim5))
+    H4_FC = tf.nn.relu(tf.matmul(H3_FC, W4_FC) + B4_FC, name="H4_FC")
+    H4_FC = tf.nn.dropout(H4_FC, keep_prob=keep_prob)
+
+    tf.summary.histogram("W4_FC", W2_FC)
+    tf.summary.histogram("B4_FC", B2_FC)
+    tf.summary.histogram("H4_FC", H4_FC)
+
+with tf.variable_scope('Fully_connected_layer5'):
+    W5_FC = tf.get_variable("W5_FC", [hiddenDim5, outputDim], tf.float32,
+                            initializer=xavier_init(hiddenDim5, outputDim))
+    B5_FC = tf.get_variable("B5_FC", [outputDim], tf.float32,
+                            initializer=xavier_init(outputDim, outputDim))
+    Y_pred = tf.matmul(H4_FC, W5_FC)+ B5_FC
+
+    tf.summary.histogram("W5_FC", W5_FC)
+    tf.summary.histogram("B5_FC", B5_FC)
     tf.summary.histogram("hypothesis", Y_pred)
 
 loss = tf.reduce_sum(tf.square(Y_pred - Y))
 optimizer = tf.train.AdamOptimizer(learningRate).minimize(loss)
+
 last_epoch = tf.Variable(0, name="last_epoch")
 
 tf.summary.scalar("loss", loss)
@@ -123,30 +157,28 @@ with tf.Session() as sess:
     start_from = sess.run(last_epoch)
 
     for epoch in range(start_from, training_epochs):
-        print("Start Epoch:", epoch)
-
         avg_cost = 0
 
         # Training step
         for i in range(batchSize):
-            feed_dict = {X: trainX, Y: trainY}
+            feed_dict = {X: trainX, Y: trainY, keep_prob:0.7}
             s, _ = sess.run([summary,optimizer], feed_dict=feed_dict)
             writer.add_summary(s, global_step=global_step)
             global_step += 1
 
-            avg_cost += sess.run(loss, feed_dict=feed_dict) #/ total_batch
+            avg_cost += sess.run(loss, feed_dict=feed_dict)/(len(y)-seq_length) #/ total_batch
 
 
-        print("Epoch= {:>5}, loss= {:>12}".format(epoch+1, avg_cost))
         sess.run(last_epoch.assign(epoch+1))
         if not os.path.exists(CHECK_POINT_DIR):
             os.makdirs(CHECK_POINT_DIR)
         saver.save(sess, CHECK_POINT_DIR + "/model", global_step=epoch+1)
 
         # Test step
-        test_predict = sess.run(Y_pred, feed_dict={X: testX})
+        test_predict = sess.run(Y_pred, feed_dict={X: testX, keep_prob:1})
         rmse_val = sess.run(rmse, feed_dict={targets: testY, predictions: test_predict})
-        print("RMSE: {}".format(rmse_val))
+
+        print("Epoch= {:>5}, loss= {:>12}, RMSE: {}".format(epoch+1, avg_cost, rmse_val))
 
     # Test step
     test_predict = sess.run(Y_pred, feed_dict={X: testX})
@@ -159,4 +191,3 @@ with tf.Session() as sess:
     plt.xlabel("Time Period")
     plt.ylabel("Elbow Angle")
     plt.show()
-
