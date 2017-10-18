@@ -23,16 +23,16 @@ learningRate = 0.005
 batchSize = 1000
 
 inputDim = 4
-RNNLayers = 1
+RNNLayers = 2
 seq_length = 10
 hiddenDim1 = 50
-hiddenDim2 = 200
-hiddenDim3 = 500
-hiddenDim4 = 300
-hiddenDim5 = 200
+hiddenDim2 = 150
+# hiddenDim3 = 150
+# hiddenDim4 = 200
+# hiddenDim5 = 150
 num_classes = 130
 
-CHECK_POINT_DIR = TB_SUMMARY_DIR = "./log/L1_10-50-200-500-300-200-130"
+CHECK_POINT_DIR = TB_SUMMARY_DIR = "./log/L2_10-50-150-130"
 
 xy = np.loadtxt('./emg/20171018-MovSD-12.txt', delimiter=' ')
 
@@ -72,7 +72,7 @@ with tf.variable_scope('LSTM_layers'):
 
 with tf.variable_scope('Fully_connected_layer1'):
     W1_FC = tf.get_variable("W1_FC", [hiddenDim1, hiddenDim2], tf.float32, initializer=xavier_init(hiddenDim1, hiddenDim2))
-    B1_FC = tf.get_variable("B1_FC", [hiddenDim2], tf.float32, initializer=xavier_init(1, hiddenDim2))
+    B1_FC = tf.get_variable("B1_FC", [hiddenDim2], tf.float32, initializer=xavier_init(hiddenDim1, hiddenDim2))
     H1_FC = tf.nn.relu( tf.matmul(X_FC, W1_FC)+ B1_FC, name="H1_FC" )
     H1_FC = tf.nn.dropout(H1_FC, keep_prob=keep_prob)
 
@@ -81,56 +81,56 @@ with tf.variable_scope('Fully_connected_layer1'):
     tf.summary.histogram("H1_FC", H1_FC)
 
 with tf.variable_scope('Fully_connected_layer2'):
-    W2_FC = tf.get_variable("W2_FC", [hiddenDim2, hiddenDim3], tf.float32,
-                            initializer=xavier_init(hiddenDim2, hiddenDim3))
-    B2_FC = tf.get_variable("B2_FC", [hiddenDim3], tf.float32,
-                            initializer=xavier_init(1, hiddenDim3))
-    H2_FC = tf.nn.relu(tf.matmul(H1_FC, W2_FC) + B2_FC, name="H1_FC")
-    H2_FC = tf.nn.dropout(H2_FC, keep_prob=keep_prob)
-    # Y_pred = tf.matmul(H1_FC, W2_FC) + B2_FC
+    W2_FC = tf.get_variable("W2_FC", [hiddenDim2, num_classes], tf.float32,
+                            initializer=xavier_init(hiddenDim2, num_classes))
+    B2_FC = tf.get_variable("B2_FC", [num_classes], tf.float32,
+                            initializer=xavier_init(hiddenDim2, num_classes))
+    # H2_FC = tf.nn.relu(tf.matmul(H1_FC, W2_FC) + B2_FC, name="H1_FC")
+    # H2_FC = tf.nn.dropout(H2_FC, keep_prob=keep_prob)
+    Y_pred = tf.matmul(H1_FC, W2_FC) + B2_FC
 
     tf.summary.histogram("W2_FC", W2_FC)
     tf.summary.histogram("B2_FC", B2_FC)
-    tf.summary.histogram("H2_FC", H2_FC)
-    # tf.summary.histogram("hypothis", Y_pred)
+    # tf.summary.histogram("H2_FC", H2_FC)
+    tf.summary.histogram("hypothis", Y_pred)
 
-with tf.variable_scope('Fully_connected_layer3'):
-    W3_FC = tf.get_variable("W3_FC", [hiddenDim3, hiddenDim4], tf.float32,
-                            initializer=xavier_init(hiddenDim3, hiddenDim4))
-    B3_FC = tf.get_variable("B3_FC", [hiddenDim4], tf.float32,
-                            initializer=xavier_init(1, hiddenDim4))
-    H3_FC = tf.nn.relu(tf.matmul(H2_FC, W3_FC) + B3_FC, name="H3_FC")
-    H3_FC = tf.nn.dropout(H3_FC, keep_prob=keep_prob)
-    # Y_pred = tf.matmul(H2_FC, W3_FC) + B3_FC
-
-
-    tf.summary.histogram("W3_FC", W3_FC)
-    tf.summary.histogram("B3_FC", B3_FC)
-    tf.summary.histogram("H3_FC", H3_FC)
-
-with tf.variable_scope('Fully_connected_layer4'):
-    W4_FC = tf.get_variable("W4_FC", [hiddenDim4, hiddenDim5], tf.float32,
-                            initializer=xavier_init(hiddenDim4, hiddenDim5))
-    B4_FC = tf.get_variable("B4_FC", [hiddenDim5], tf.float32,
-                            initializer=xavier_init(num_classes, hiddenDim5))
-    H4_FC = tf.nn.relu(tf.matmul(H3_FC, W4_FC) + B4_FC, name="H4_FC")
-    H4_FC = tf.nn.dropout(H4_FC, keep_prob=keep_prob)
-    # Y_pred = tf.matmul(H3_FC, W4_FC) + B4_FC
-
-    tf.summary.histogram("W4_FC", W4_FC)
-    tf.summary.histogram("B4_FC", B4_FC)
-    tf.summary.histogram("H4_FC", H4_FC)
-
-with tf.variable_scope('Fully_connected_layer5'):
-    W5_FC = tf.get_variable("W5_FC", [hiddenDim5, num_classes], tf.float32,
-                            initializer=xavier_init(hiddenDim5, num_classes))
-    B5_FC = tf.get_variable("B5_FC", [num_classes], tf.float32,
-                            initializer=xavier_init(num_classes, num_classes))
-    Y_pred = tf.matmul(H4_FC, W5_FC)+ B5_FC
-
-    tf.summary.histogram("W5_FC", W5_FC)
-    tf.summary.histogram("B5_FC", B5_FC)
-    tf.summary.histogram("hypothesis", Y_pred)
+# with tf.variable_scope('Fully_connected_layer3'):
+#     W3_FC = tf.get_variable("W3_FC", [hiddenDim3, hiddenDim4], tf.float32,
+#                             initializer=xavier_init(hiddenDim3, hiddenDim4))
+#     B3_FC = tf.get_variable("B3_FC", [hiddenDim4], tf.float32,
+#                             initializer=xavier_init(1, hiddenDim4))
+#     H3_FC = tf.nn.relu(tf.matmul(H2_FC, W3_FC) + B3_FC, name="H3_FC")
+#     H3_FC = tf.nn.dropout(H3_FC, keep_prob=keep_prob)
+#     # Y_pred = tf.matmul(H2_FC, W3_FC) + B3_FC
+#
+#
+#     tf.summary.histogram("W3_FC", W3_FC)
+#     tf.summary.histogram("B3_FC", B3_FC)
+#     tf.summary.histogram("H3_FC", H3_FC)
+#
+# with tf.variable_scope('Fully_connected_layer4'):
+#     W4_FC = tf.get_variable("W4_FC", [hiddenDim4, hiddenDim5], tf.float32,
+#                             initializer=xavier_init(hiddenDim4, hiddenDim5))
+#     B4_FC = tf.get_variable("B4_FC", [hiddenDim5], tf.float32,
+#                             initializer=xavier_init(num_classes, hiddenDim5))
+#     H4_FC = tf.nn.relu(tf.matmul(H3_FC, W4_FC) + B4_FC, name="H4_FC")
+#     H4_FC = tf.nn.dropout(H4_FC, keep_prob=keep_prob)
+#     # Y_pred = tf.matmul(H3_FC, W4_FC) + B4_FC
+#
+#     tf.summary.histogram("W4_FC", W4_FC)
+#     tf.summary.histogram("B4_FC", B4_FC)
+#     tf.summary.histogram("H4_FC", H4_FC)
+#
+# with tf.variable_scope('Fully_connected_layer5'):
+#     W5_FC = tf.get_variable("W5_FC", [hiddenDim5, num_classes], tf.float32,
+#                             initializer=xavier_init(hiddenDim5, num_classes))
+#     B5_FC = tf.get_variable("B5_FC", [num_classes], tf.float32,
+#                             initializer=xavier_init(num_classes, num_classes))
+#     Y_pred = tf.matmul(H4_FC, W5_FC)+ B5_FC
+#
+#     tf.summary.histogram("W5_FC", W5_FC)
+#     tf.summary.histogram("B5_FC", B5_FC)
+#     tf.summary.histogram("hypothesis", Y_pred)
 
 
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=Y_pred, labels=Y_one_hot))
